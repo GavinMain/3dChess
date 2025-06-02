@@ -54,10 +54,10 @@ public class Piece : MonoBehaviour
 
     public virtual void moveTo(Vector3 t)
     {
-        StartCoroutine(MoveOverTime(t, 1f));
+        StartCoroutine(moveOverTime(t, 1f));
     }
 
-    private IEnumerator MoveOverTime(Vector3 target, float duration)
+    private IEnumerator moveOverTime(Vector3 target, float duration)
     {
         Vector3 start = transform.position;
         float elapsed = 0f;
