@@ -17,13 +17,8 @@ public class Knight : Piece
                                 (dx == 0 && dz == 1 && dy == 2) ||
                                 (dx == 1 && dz == 0 && dy == 2) ||
                                 (dx == 2 && dz == 0 && dy == 1);
-        
-        if (c == t || (board[(int)t.x, (int)t.y, (int)t.z].currentPiece != null && board[(int)t.x, (int)t.y, (int)t.z].currentPiece.isWhite == isWhite))
-        {
-            return false;
-        }
 
-        return isLShapedMove;
+        return base.isValidMove(c, t, board) && isLShapedMove;
     }
 
     public override string getCode()
