@@ -1,0 +1,40 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Queen : Piece
+{
+    public bool hasMoved = false;
+
+    public override bool isValidMove(Vector3 c, Vector3 t, Tile[,,] board)
+    {
+        float dx = Mathf.Abs(c.x - t.x);
+        float dy = Mathf.Abs(c.y - t.y);
+        float dz = Mathf.Abs(c.z - t.z);
+
+        bool b = dx == dz && c.y == t.y ||
+                dx == dy && c.z == t.z ||
+                dy == dz && c.x == t.x ||
+                (c.x == t.x && c.y == t.y) ||
+                (c.y == t.y && c.z == t.z) ||
+                (c.z == t.z && c.x == t.x);
+
+        if (!b) {
+            return false;
+        }
+
+        
+
+        return base.isValidMove(c, t, board);
+    }
+
+    public override string getCode()
+    {
+        return "Q";
+    }
+
+    public override void moveTo(Vector3 t)
+    {
+        base.moveTo(t + positionOffset);
+    }
+}
