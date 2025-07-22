@@ -28,6 +28,6 @@ public class Bishop : Piece
 
     public override void moveTo(Vector3 t)
     {
-        base.moveTo(t + positionOffset);
+        base.moveTo(t);
     }
 }

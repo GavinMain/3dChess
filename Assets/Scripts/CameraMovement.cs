@@ -52,33 +52,39 @@ public class CameraMovement : MonoBehaviour
     /// </summary>
     bool m_Looking;
 
+    private float rotationX; // Vertical (pitch)
+    private float rotationY; // Horizontal (yaw)
+
+
     void Update()
     {
         var fastMode = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
         var movementSpeed = fastMode ? m_FastMovementSpeed : m_MovementSpeed;
 
         if (Input.GetKey(KeyCode.A))
-            transform.position = transform.position + -transform.right * movementSpeed * Time.deltaTime;
-
+            transform.position += -transform.right * movementSpeed * Time.deltaTime;
         if (Input.GetKey(KeyCode.D))
-            transform.position = transform.position + transform.right * movementSpeed * Time.deltaTime;
-
+            transform.position += transform.right * movementSpeed * Time.deltaTime;
         if (Input.GetKey(KeyCode.W))
-            transform.position = transform.position + transform.forward * movementSpeed * Time.deltaTime;
-
+            transform.position += transform.forward * movementSpeed * Time.deltaTime;
         if (Input.GetKey(KeyCode.S))
-            transform.position = transform.position + -transform.forward * movementSpeed * Time.deltaTime;
+            transform.position += -transform.forward * movementSpeed * Time.deltaTime;
 
         if (m_Looking)
         {
-            var newRotationX = transform.localEulerAngles.y + Input.GetAxis("Mouse X") * m_FreeLookSensitivity;
-            var newRotationY = transform.localEulerAngles.x - Input.GetAxis("Mouse Y") * m_FreeLookSensitivity;
-            transform.localEulerAngles = new Vector3(newRotationY, newRotationX, 0f);
+            rotationY += Input.GetAxis("Mouse X") * m_FreeLookSensitivity;
+            rotationX -= Input.GetAxis("Mouse Y") * m_FreeLookSensitivity;
+
+            // Clamp vertical rotation to avoid flipping/twitching
+            rotationX = Mathf.Clamp(rotationX, -89f, 89f);
+
+            transform.localEulerAngles = new Vector3(rotationX, rotationY, 0f);
         }
 
         if (Input.GetKeyDown(KeyCode.Mouse1))
             StartLooking();
-        else if (Input.GetKeyUp(KeyCode.Mouse1)) StopLooking();
+        else if (Input.GetKeyUp(KeyCode.Mouse1))
+            StopLooking();
     }
 
     void OnDisable()
@@ -91,9 +97,14 @@ public class CameraMovement : MonoBehaviour
     /// </summary>
     void StartLooking()
     {
-        m_Looking = true;
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
+
+        // Initialize rotation values to match current camera rotation
+        Vector3 euler = transform.localEulerAngles;
+        rotationX = euler.x;
+        rotationY = euler.y;
+        m_Looking = true;
     }
 
     /// <summary>

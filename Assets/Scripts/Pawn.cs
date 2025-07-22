@@ -10,14 +10,30 @@ public class Pawn : Piece
 
     public override bool isValidMove(Vector3 c, Vector3 t, Tile[,,] board)
     {
-        int direction = isWhite ? -1 : 1;
+        int direction = isWhite.Value ? -1 : 1;
 
+        if (t.x == c.x + direction &&
+            Mathf.Abs(t.z - c.z) == 1 && t.y == c.y)
+        {
+            Tile targetTile = board[(int)t.x, (int)t.y, (int)t.z];
+            if (targetTile.currentPiece != null &&
+                targetTile.currentPiece.isWhite.Value != this.isWhite.Value)
+            {
+                return true; // valid capture
+            }
+        }
+
+        //blocked by piece
+        if (board[(int)t.x, (int)t.y, (int)t.z].currentPiece != null)
+        {
+            return false;
+        }
         // One step forward
         if (t.x == c.x + direction &&
             t.y == c.y &&
             t.z == c.z)
         {
-            return true;
+            return base.isValidMove(c, t, board);
         }
 
         // One step down
@@ -25,7 +41,7 @@ public class Pawn : Piece
             t.y == c.y + direction &&
             t.z == c.z)
         {
-            return true;
+            return base.isValidMove(c, t, board);
         }
 
         // One step up
@@ -33,7 +49,7 @@ public class Pawn : Piece
             t.y == c.y - direction &&
             t.z == c.z)
         {
-            return true;
+            return base.isValidMove(c, t, board);
         }
 
         // Two steps forward on first move
@@ -42,7 +58,7 @@ public class Pawn : Piece
             t.y == c.y &&
             t.z == c.z)
         {
-            return true;
+            return base.isValidMove(c, t, board);
         }
 
         // Two steps down on first move
@@ -51,7 +67,7 @@ public class Pawn : Piece
             t.y == c.y + (2 * direction) &&
             t.z == c.z)
         {
-            return true;
+            return base.isValidMove(c, t, board);
         }
 
         // Two steps up on first move
@@ -60,7 +76,7 @@ public class Pawn : Piece
             t.y == c.y - (2 * direction)&&
             t.z == c.z)
         {
-            return true;
+            return base.isValidMove(c, t, board);
         }
 
         return false;
@@ -73,7 +89,7 @@ public class Pawn : Piece
 
     public override void moveTo(Vector3 t)
     {
-        base.moveTo(t + positionOffset);
+        base.moveTo(t);
         hasMoved = true;
     }
 }
