@@ -19,5 +19,6 @@ You can left click a chess piece to see possible movement options (green tiles)
 The turns go in order white -> black -> white etc
 Clicking on a black tile during white's turn does nothing and vice versa
 
+Run the App by double clicking Application/3dChess
 
 
