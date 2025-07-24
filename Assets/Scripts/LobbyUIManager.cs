@@ -1,23 +1,23 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // Only needed if using TextMeshPro
+using TMPro;
 using System;
 
 public class LobbyUIManager : MonoBehaviour
 {
     [Header("References")]
     public NetworkManagerHandler networkManager;
-    public TMP_InputField joinCodeInput;         // Drag your JoinCodeInput here
-    public TMP_Text roomCodeDisplayText;         // Drag RoomCodeDisplay here
+    public TMP_InputField joinCodeInput;         
+    public TMP_Text roomCodeDisplayText;         
 
+    // Host button
     public void HostGame()
     {
         networkManager.HostWithLobby();
-
-        // Show room code after short delay (relay + lobby creation is async)
         Invoke(nameof(UpdateRoomCodeDisplay), 2f);
     }
 
+    // Client button
     public void JoinGame()
     {
         string code = joinCodeInput.text.Trim();
@@ -31,6 +31,7 @@ public class LobbyUIManager : MonoBehaviour
         }
     }
 
+    // Shows room code
     private void UpdateRoomCodeDisplay()
     {
         if (networkManager != null && networkManager.currentLobby != null)
@@ -43,17 +44,19 @@ public class LobbyUIManager : MonoBehaviour
         }
     }
 
+    //Copy button
+    // Copies room code to clipboard
     public void CopyRoomCodeToClipboard()
-{
-    if (networkManager != null && networkManager.currentLobby != null)
     {
-        string code = networkManager.currentLobby.LobbyCode;
-        GUIUtility.systemCopyBuffer = code;
-        Debug.Log($"Copied room code to clipboard: {code}");
+        if (networkManager != null && networkManager.currentLobby != null)
+        {
+            string code = networkManager.currentLobby.LobbyCode;
+            GUIUtility.systemCopyBuffer = code;
+            Debug.Log($"Copied room code to clipboard: {code}");
+        }
+        else
+        {
+            Debug.LogWarning("No room code to copy.");
+        }
     }
-    else
-    {
-        Debug.LogWarning("No room code to copy.");
-    }
-}
 }

@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+// Function information in Piece.cs
 public class Queen : Piece
 {
     public bool hasMoved = false;

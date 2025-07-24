@@ -11,7 +11,6 @@ public class EndScreenUI : MonoBehaviour
     public GameObject panel;
 
     private ChessPlayer player;
-    // Start is called before the first frame update
     void Start()
     {
         panel.SetActive(false);
@@ -22,13 +21,14 @@ public class EndScreenUI : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
     public void ShowPopup(string s)
     {
         displayText.text = s;
         panel.SetActive(true);
     }
 
+    // Activated with button. Logic is in ChessPlayer.cs
+    // Returns to Main Menu after game end
     public void returnToTitle()
     {
         player.OnClientPressedReturnToTitle();

@@ -1,10 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+// Function information in Piece.cs
 public class King : Piece
 {
-    public bool hasMoved = false;
     private bool hasCastled = false;
     private Tile[,,] board = null;
 
@@ -12,7 +11,6 @@ public class King : Piece
     {
         board = _board;
 
-        // Castling (still allowed to "move" into rook to trigger it?)
         if (!hasCastled && board[(int)t.x, (int)t.y, (int)t.z].currentPiece is Rook &&
                            board[(int)t.x, (int)t.y, (int)t.z].currentPiece.isWhite.Value == isWhite.Value)
         {
@@ -23,7 +21,6 @@ public class King : Piece
         float dy = Mathf.Abs(c.y - t.y);
         float dz = Mathf.Abs(c.z - t.z);
 
-        // King can move in any of the 26 adjacent positions
         bool b = dx <= 1 && dy <= 1 && dz <= 1 && (dx + dy + dz > 0);
 
         return base.isValidMove(c, t, board) && b;

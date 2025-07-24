@@ -14,6 +14,7 @@ public class ChessPlayer : NetworkBehaviour
 
     public int currentLayer = 7;
 
+    // Assigns player color and starting camera location
     public override void OnNetworkSpawn()
     {
         if (!IsOwner)
@@ -29,8 +30,7 @@ public class ChessPlayer : NetworkBehaviour
 
         if (IsServer)
         {
-            // Assign white/black based on join order
-            isWhite.Value = (NetworkManager.Singleton.ConnectedClientsIds.Count == 1);
+            isWhite.Value = NetworkManager.Singleton.ConnectedClientsIds.Count == 1;
         }
         if (isWhite.Value)
         {
@@ -50,9 +50,10 @@ public class ChessPlayer : NetworkBehaviour
         NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += OnSceneLoaded;
     }
 
+    // Listens for player input
     void Update()
     {
-        if (!IsOwner) return;  // Only process input for local player
+        if (!IsOwner) return; 
 
         if (Input.GetKeyDown(KeyCode.Q))
         {
@@ -74,8 +75,7 @@ public class ChessPlayer : NetworkBehaviour
         }
     }
 
-
-
+    // Clean up clients     
     void OnSceneLoaded(string sceneName, LoadSceneMode mode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
     {
         if (sceneName == "MainMenu" && NetworkManager.Singleton.IsServer)
@@ -88,6 +88,7 @@ public class ChessPlayer : NetworkBehaviour
         }
     }
 
+    // Sends click information to GameManager for processing
     [ServerRpc]
     private void SendTileClickToServerServerRpc(Ray ray, ServerRpcParams rpcParams = default)
     {
@@ -122,6 +123,7 @@ public class ChessPlayer : NetworkBehaviour
         GameManager.Instance.PromotePawn(pieceCode);
     }
 
+    // Handles return to Main Menu after game
     [ServerRpc(RequireOwnership = false)]
     private void RequestReturnToTitleServerRpc()
     {
@@ -131,26 +133,19 @@ public class ChessPlayer : NetworkBehaviour
 
     public async Task HandleReturnToTitle()
     {
-
-        // Clean up lobby and network state first
         NetworkManagerHandler networkHandler = FindObjectOfType<NetworkManagerHandler>();
         if (networkHandler != null)
         {
             await networkHandler.CleanupNetworkState();
         }
 
-
-        // Properly shutdown the network session before returning to main menu
         if (NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsClient)
         {
             NetworkManager.Singleton.Shutdown();
         }
 
-
-        // Optional: Wait a frame for shutdown to finish cleanly
         await Task.Delay(100);
 
-        // Load the MainMenu scene
         SceneManager.LoadScene("MainMenu");
 
     }
@@ -161,7 +156,6 @@ public class ChessPlayer : NetworkBehaviour
         _ = HandleReturnToTitle();
     }
 
-    
     public void OnClientPressedReturnToTitle()
     {
         RequestReturnToTitleServerRpc();

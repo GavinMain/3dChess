@@ -67,23 +67,18 @@ public class Piece : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
-
-        // Apply the material based on the synced isWhite value
-        //Debug.Log("Spawn");
         ApplyMaterial();
-
-        // Optional: Listen for changes to isWhite (if it could change mid-game)
         isWhite.OnValueChanged += OnIsWhiteChanged;
     }
 
-    // Optional: Clean up listener on despawn
+    // Called on object despawn
     public override void OnNetworkDespawn()
     {
         base.OnNetworkDespawn();
         isWhite.OnValueChanged -= OnIsWhiteChanged;
     }
 
-    // Method to apply material (called on spawn or change)
+    // Method to apply material (pieces start off as grey)
     public void ApplyMaterial()
     {
         if (IsClient && !IsServer)
@@ -93,22 +88,23 @@ public class Piece : NetworkBehaviour
         Renderer renderer = GetComponent<Renderer>();
         if (renderer != null)
         {
-            // Reference materials from GameManager (centralized)
             renderer.material = isWhite.Value ? GameManager.whiteTileMaterial : GameManager.blackTileMaterial;
         }
     }
 
-    // Callback for if isWhite changes (unlikely for chess, but good practice)
+    // Callback for if isWhite changes 
     private void OnIsWhiteChanged(bool oldValue, bool newValue)
     {
-        ApplyMaterial();  // Re-apply if isWhite changes
+        ApplyMaterial();
     }
 
+    // Abstract function to return piece code
     public virtual string getCode()
     {
         return "";
     }
 
+    // Abstract function for future animations
     public virtual void moveTo(Vector3 t)
     {
         //StartCoroutine(moveOverTime(t, 1f));
@@ -118,6 +114,7 @@ public class Piece : NetworkBehaviour
         return GetComponent<NetworkObject>().NetworkObjectId;
     }
 
+    // Future animation function
     private IEnumerator moveOverTime(Vector3 target, float duration)
     {
         Vector3 start = transform.position;
@@ -130,7 +127,7 @@ public class Piece : NetworkBehaviour
             yield return null;
         }
 
-        transform.position = target; // Ensure exact position at the end
+        transform.position = target;
     }
 }
 

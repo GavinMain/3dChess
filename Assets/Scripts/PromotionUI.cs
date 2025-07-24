@@ -7,13 +7,12 @@ public class PromotionUI : MonoBehaviour
 {
     public GameObject panel;
 
-    private ChessPlayer player; // Reference to the player NetworkBehaviour that contains the ServerRpc
+    private ChessPlayer player; 
 
     void Start()
     {
         panel.SetActive(false);
 
-        // Get the local player’s PlayerNetwork script
         if (NetworkManager.Singleton.LocalClient != null)
         {
             player = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<ChessPlayer>();
@@ -25,6 +24,7 @@ public class PromotionUI : MonoBehaviour
         panel.SetActive(true);
     }
 
+    // Buttons for player to choose which piece to promote Pawn to
     public void QueenSelected()
     {
         PromotePawn("Q");
@@ -45,6 +45,7 @@ public class PromotionUI : MonoBehaviour
         PromotePawn("B");
     }
 
+    // Logic in ChessPlayer.cs
     private void PromotePawn(string pieceCode)
     {
         if (player != null && player.IsOwner)

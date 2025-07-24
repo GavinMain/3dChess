@@ -1,17 +1,16 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+// Function information in Piece.cs
 public class Pawn : Piece
 {
-    //Incomplete movement
-    //no promotion
     public bool hasMoved = false;
 
     public override bool isValidMove(Vector3 c, Vector3 t, Tile[,,] board)
     {
         int direction = isWhite.Value ? -1 : 1;
 
+        // Diagonal Capture
         if (t.x == c.x + direction &&
             Mathf.Abs(t.z - c.z) == 1 && t.y == c.y)
         {
@@ -19,11 +18,11 @@ public class Pawn : Piece
             if (targetTile.currentPiece != null &&
                 targetTile.currentPiece.isWhite.Value != this.isWhite.Value)
             {
-                return true; // valid capture
+                return true;
             }
         }
 
-        //blocked by piece
+        // Blocked by piece
         if (board[(int)t.x, (int)t.y, (int)t.z].currentPiece != null)
         {
             return false;
@@ -37,7 +36,7 @@ public class Pawn : Piece
         }
 
         // One step down
-        if (t.x == c.x  &&
+        if (t.x == c.x &&
             t.y == c.y + direction &&
             t.z == c.z)
         {
@@ -45,7 +44,7 @@ public class Pawn : Piece
         }
 
         // One step up
-        if (t.x == c.x  &&
+        if (t.x == c.x &&
             t.y == c.y - direction &&
             t.z == c.z)
         {
@@ -72,8 +71,8 @@ public class Pawn : Piece
 
         // Two steps up on first move
         if (!hasMoved &&
-            t.x == c.x  &&
-            t.y == c.y - (2 * direction)&&
+            t.x == c.x &&
+            t.y == c.y - (2 * direction) &&
             t.z == c.z)
         {
             return base.isValidMove(c, t, board);

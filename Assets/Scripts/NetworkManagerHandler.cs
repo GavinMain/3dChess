@@ -61,10 +61,10 @@ public class NetworkManagerHandler : MonoBehaviour
         }
     }
 
-    // Call this from UI to start a single-player game
+    // Single player button
+    // Starts single player game
     public void StartSinglePlayer()
     {
-        // Check if NetworkManager is already running
         if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsClient)
         {
             Debug.LogWarning("NetworkManager is already running. Cannot start new game.");
@@ -76,10 +76,9 @@ public class NetworkManagerHandler : MonoBehaviour
         NetworkManager.Singleton.StartHost();
     }
 
-    // Call this from UI to host a multiplayer game
+    // Host a game
     public async void HostWithLobby()
     {
-        // Check if NetworkManager is already running
         if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsClient)
         {
             Debug.LogWarning("NetworkManager is already running. Cannot start new game.");
@@ -88,19 +87,19 @@ public class NetworkManagerHandler : MonoBehaviour
 
         isSinglePlayer = false;
 
-        // 1. Create Relay allocation
+        // Create Relay allocation
         Allocation allocation = await RelayService.Instance.CreateAllocationAsync(MAX_PLAYERS);
         string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
 
-        // 2. Setup UnityTransport with Relay
+        // Setup UnityTransport with Relay
         var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
         transport.SetRelayServerData(new RelayServerData(allocation, "udp"));
 
-        // 3. Start NGO host
+        // Start NGO host
         NetworkManager.Singleton.StartHost();
 
-        // 4. Create Unity Lobby and store join code in data
+        // Create Unity Lobby and store join code in data
         var options = new CreateLobbyOptions
         {
             IsPrivate = false,
@@ -113,13 +112,12 @@ public class NetworkManagerHandler : MonoBehaviour
         currentLobby = await LobbyService.Instance.CreateLobbyAsync("ChessRoom", MAX_PLAYERS, options);
 
         Debug.Log($"Lobby Created. Join code: {currentLobby.LobbyCode}");
-        // You can now show currentLobby.LobbyCode in the UI
     }
 
-    // Call this from UI to join a game with a room code
+    // Join as client
     public async void JoinWithLobbyCode(string lobbyCode)
     {
-        // Check if NetworkManager is already running
+        
         if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsClient)
         {
             Debug.LogWarning("NetworkManager is already running. Cannot join new game.");
@@ -133,14 +131,14 @@ public class NetworkManagerHandler : MonoBehaviour
             currentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode);
             string relayJoinCode = currentLobby.Data["relayCode"].Value;
 
-            // 1. Join Relay allocation
+            // Join Relay allocation
             JoinAllocation allocation = await RelayService.Instance.JoinAllocationAsync(relayJoinCode);
 
-            // 2. Set UnityTransport relay data
+            // Set UnityTransport relay data
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             transport.SetRelayServerData(new RelayServerData(allocation, "udp"));
 
-            // 3. Start NGO client
+            // Start NGO client
             NetworkManager.Singleton.StartClient();
         }
         catch (LobbyServiceException e)
@@ -149,10 +147,9 @@ public class NetworkManagerHandler : MonoBehaviour
         }
     }
 
-    // Call this to properly clean up network state when returning to main menu
+    // Clean Up - used in ChessPlayer.cs HandleReturnToTitle()
     public async Task CleanupNetworkState()
     {
-        // Clean up lobby if we have one
         if (currentLobby != null)
         {
             try

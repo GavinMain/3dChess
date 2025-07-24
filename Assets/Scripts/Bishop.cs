@@ -1,11 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+// Function information in Piece.cs
 public class Bishop : Piece
 {
-    public bool hasMoved = false;
-
     public override bool isValidMove(Vector3 c, Vector3 t, Tile[,,] board)
     {
         float dx = Mathf.Abs(c.x - t.x);

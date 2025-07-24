@@ -24,6 +24,7 @@ public class GameManager : NetworkBehaviour
     public GameObject kingPrefab;
 
     // Materials
+    // Static materials used in Piece.cs ApplyMaterial()
     [Header("Materials")]
     public Material w;
     public Material b;
@@ -47,15 +48,14 @@ public class GameManager : NetworkBehaviour
     private bool hasSelected = false;
     private Tile selectedTile = null;
     private Transform piecesFolder;
-
-    // Piece creation mappings
-    private Dictionary<char, GameObject> piecePrefabs;
-    private Dictionary<char, System.Type> pieceComponents;
-
-    public static GameManager Instance { get; private set; }
     private Tile promotingTile = null;
     private bool gameEnded = false;
     private bool isCastling = false;
+
+    // Piece creation mappings
+    private Dictionary<char, GameObject> piecePrefabs;
+    public static GameManager Instance { get; private set; }
+    
 
     void Awake()
     {
@@ -70,16 +70,6 @@ public class GameManager : NetworkBehaviour
             { 'K', kingPrefab }
         };
 
-        pieceComponents = new Dictionary<char, System.Type>
-        {
-            { 'P', typeof(Pawn) },
-            { 'R', typeof(Rook) },
-            { 'N', typeof(Knight) },
-            { 'B', typeof(Bishop) },
-            { 'Q', typeof(Queen) },
-            { 'K', typeof(King) }
-        };
-
         if (Instance != null && Instance != this)
             Destroy(gameObject);
         else
@@ -90,20 +80,20 @@ public class GameManager : NetworkBehaviour
         greenMaterial = g;
     }
 
-    //creates board
+    // Create board
+    // Save or load pieces (future implement)
     void Start()
     {
-        // Create the folder for organization (can run on all, as it's local)
         piecesFolder = new GameObject("PiecesFolder").transform;
 
         if (IsServer)
         {
             // Server-only: Handle board creation, loading, and setup
-            CreateBoard();  // Assuming tiles can be local; see notes below
+            CreateBoard();  
             string filePath = GetSaveFilePath();
             if (File.Exists(filePath))
             {
-                LoadBoard(filePath);  // Ensure LoadBoard spawns on server
+                LoadBoard(filePath); 
             }
             else
             {
@@ -113,17 +103,13 @@ public class GameManager : NetworkBehaviour
         }
         else if (IsClient)
         {
-            // Optional: Client-specific setup (e.g., UI or waiting logic)
-            // No need to create board or pieces—wait for server sync
-
             CreateBoard();
-           // ColorPieceClientRpc();
         }
     }
 
+    // Initialize board as Tile array. Place Tiles in world
     private void CreateBoard()
     {
-        //initializes board as a tile array
         IterateBoard((x, y, z) =>
         {
             Vector3 position = new Vector3(x * scale, y * scale, z * scale);
@@ -141,17 +127,17 @@ public class GameManager : NetworkBehaviour
         });
     }
 
-    //initalizes board with default placements
+    // Initalizes board with default pieces (if no save file exists)
     private void SetupInitialPieces()
     {
         // Place pawns
         for (int i = 0; i < BOARD_SIZE; i++)
         {
             PlacePiece("P0", BOARD_SIZE - 1, i, 1); // Black pawns
-            PlacePiece("P1", BOARD_SIZE - 1, i, BOARD_SIZE - 2); // White pawns (corrected from original)
+            PlacePiece("P1", BOARD_SIZE - 1, i, BOARD_SIZE - 2); // White pawns 
         }
 
-        // Place other pieces (corrected positions from original)
+        // Place other pieces 
         string[] pieceOrder = { "R", "N", "B", "Q", "K", "B", "N", "R" };
         for (int i = 0; i < BOARD_SIZE; i++)
         {
@@ -160,8 +146,12 @@ public class GameManager : NetworkBehaviour
         }
     }
 
+    // Place individual Piece 
+    // x, y, z are board indices
+    // Notice it is y, z, x (this made sense in the beginning of development)
     private void PlacePiece(string code, int y, int z, int x)
     {
+        // Get Piece Information
         char pieceType = code[0];
         if (pieceType == '0') return;
 
@@ -175,9 +165,9 @@ public class GameManager : NetworkBehaviour
         Vector3 tilePos = board[x, y, z].transform.position;
         Quaternion rotation = isWhite ? Quaternion.Euler(0, -90, 0) : Quaternion.Euler(0, 90, 0);
 
+        // Initialize Piece
         GameObject pieceObj = Instantiate(prefab, tilePos + prefab.transform.position, rotation);
 
-        // Get the Piece BEFORE Spawn
         Piece piece = pieceObj.GetComponent<Piece>();
         if (piece == null)
         {
@@ -186,37 +176,45 @@ public class GameManager : NetworkBehaviour
             return;
         }
 
-        piece.isWhite.Value = isWhite; // set NetworkVariable BEFORE spawn
+        // Update data
+        piece.isWhite.Value = isWhite; 
         board[x, y, z].currentPiece = piece;
         board[x, y, z].currentPiece.positionOffset = prefab.transform.position;
 
+        // Spawn as network object
         NetworkObject netObj = pieceObj.GetComponent<NetworkObject>();
         if (netObj != null)
         {
-            netObj.Spawn(); // spawn AFTER setting variables
+            netObj.Spawn(); 
         }
     }
 
-    [ClientRpc]
-    private void ColorPieceClientRpc()
-    {
-        IterateBoard((x, y, z) =>
-        {
-            Tile tile = board[x, y, z];
-            if (tile.currentPiece != null)
-            {
-                tile.currentPiece.ApplyMaterial();
-            }
-        });
-    }
+    // Converts board state into string
+    // Format: Each block is a layer (0-7), separated by empty line
+    // Each layer is 8 rows, 8 col like a usual chess board
+    /*
+        Example, populated layer on top of empty layer:
+        00;00;00;00;00;00;00;00
+        00;00;00;00;00;00;00;00
+        00;00;00;00;00;00;00;00
+        00;00;00;00;00;00;00;00
+        00;00;00;00;00;00;00;00
+        00;00;00;00;00;00;00;00
+        00;00;00;00;00;00;00;00
+        00;00;00;00;00;00;00;00
 
-    //converts board state into string
-    //format: ;00,00,00,00,00,00,00,00;00,00...
-    //each substring separated by ';' is a column (forwards -> backwards, -x -> x)
+        R0;N0;B0;Q0;K0;B0;N0;R0
+        P0;P0;P0;P0;P0;P0;P0;P0
+        00;00;00;00;00;00;00;00
+        00;00;00;00;00;00;00;00
+        00;00;00;00;00;00;00;00
+        00;00;00;00;00;00;00;00
+        P1;P1;P1;P1;P1;P1;P1;P1
+        R1;N1;B1;Q1;K1;B1;N1;R1
+    */
     private string GetBoardStateString()
     {
-        // Prepare a 2D string array to hold each row per layer
-        string[,] layerData = new string[8, 8]; // [layer (y), row (x)]
+        string[,] layerData = new string[8, 8]; 
 
         IterateBoard((x, y, z) =>
         {
@@ -233,10 +231,10 @@ public class GameManager : NetworkBehaviour
 
         List<string> layers = new List<string>();
 
-        for (int y = 0; y < 8; y++) // for each layer
+        for (int y = 0; y < 8; y++) // For each layer
         {
             List<string> rows = new List<string>();
-            for (int x = 0; x < 8; x++) // for each row in layer
+            for (int x = 0; x < 8; x++) // For each row in layer
             {
                 rows.Add(layerData[y, x]);
             }
@@ -246,6 +244,7 @@ public class GameManager : NetworkBehaviour
         return string.Join("\n\n", layers);
     }
 
+    // Saves board state as file (future)
     private void SaveBoard(string filePath)
     {
         try
@@ -258,6 +257,7 @@ public class GameManager : NetworkBehaviour
         }
     }
 
+    // Loads board state as file (future)
     private void LoadBoard(string filePath)
     {
         try
@@ -287,11 +287,19 @@ public class GameManager : NetworkBehaviour
     }
 
 
+    // Creates a folder for board states if it does not already exist
     private string GetSaveFilePath()
     {
-        return Path.Combine(Application.dataPath, "BoardStates", saveFileName);
+        string directory = Path.Combine(System.Environment.CurrentDirectory, "BoardStates");
+
+        if (!Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+        return Path.Combine(directory, saveFileName);
     }
 
+    // Function to hanlde tile clicked by each player
     public void OnTileClicked(Vector3 tilePos, ulong clientId)
     {
         if (gameEnded)
@@ -304,22 +312,24 @@ public class GameManager : NetworkBehaviour
             Debug.LogWarning($"No ChessPlayer found for clientId {clientId}");
             return;
         }
-        
-        // Optional: check if it's player's turn before allowing input
+
         if (!IsPlayerTurn(player)) return;
 
-        // Your existing logic from HandleClick() simplified:
         Tile tile = board[(int)tilePos.x, (int)tilePos.y, (int)tilePos.z];
 
         if (tile.currentPiece == null && !tile.isValid) return;
 
         if (!hasSelected && tile.currentPiece != null && tile.currentPiece.isWhite.Value != whiteTurn) return;
 
+        // Already selected a Piece from previous click (Piece means Tile containing a Piece)
         if (hasSelected)
         {
+            // Move Piece to new location
             if (selectedTile.currentPiece.isValidMove(selectedTile.boardPos, tile.boardPos, board))
             {
-                selectedTile.currentPiece.moveTo(tile.boardPos);
+                // Used to set Piece specific flags
+                // More useful in the future for animations
+                selectedTile.currentPiece.moveTo(tile.boardPos); 
 
                 NetworkObject piece = selectedTile.currentPiece.GetComponent<NetworkObject>();
 
@@ -333,6 +343,7 @@ public class GameManager : NetworkBehaviour
                 {
                     if (tile.currentPiece != null)
                     {
+                        // Game End Logic
                         if (tile.currentPiece.GetComponent<King>() != null)
                         {
                             GameEndServerRpc(whiteTurn);
@@ -354,24 +365,27 @@ public class GameManager : NetworkBehaviour
                 whiteTurn = !whiteTurn;
 
             }
-            else
+            else // User clicked off the selected Piece (Piece means Tile containing a Piece)
             {
                 hasSelected = false;
                 selectedTile = null;
                 ResetValidMoveDisplay(player.currentLayer, clientId);
             }
         }
-        else if (tile.currentPiece != null)
+        else if (tile.currentPiece != null)  // Have not selected a Piece or clicked off a selected one (Piece means Tile containing a Piece)
         {
             hasSelected = true;
             selectedTile = tile;
             ShowValidMoves(tile.currentPiece, clientId);
         }
     }
+    // Used in King.cs to set a flag
     public void Castle()
     {
         isCastling = true;
     }
+
+    // Game End / End Screen Logic
     [ServerRpc]
     private void GameEndServerRpc(bool wT)
     {
@@ -379,12 +393,14 @@ public class GameManager : NetworkBehaviour
         ShowEndScreenClientRpc(s);
         gameEnded = true;
     }
+
     [ClientRpc]
     private void ShowEndScreenClientRpc(string s)
     {
         FindObjectOfType<EndScreenUI>().ShowPopup(s);
     }
 
+    // Promotion Logic
     public void PromotePawnCheck(Tile t, ulong clientId)
     {
         if (t.currentPiece.GetComponent<Pawn>() != null &&
@@ -416,6 +432,7 @@ public class GameManager : NetworkBehaviour
 
     }
 
+    // Client handling Logic
     public ChessPlayer GetPlayerByClientId(ulong clientId)
     {
         if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out NetworkClient client))
@@ -430,50 +447,29 @@ public class GameManager : NetworkBehaviour
         return (isSinglePlayer) || (player.isWhite.Value && whiteTurn) || (!player.isWhite.Value && !whiteTurn);
     }
 
-    // Call this when a move needs to happen (e.g., from player input)
+    // Move Piece Logic
     public void RequestMovePiece(NetworkObject pieceNetObj, Vector3 newPosition)
     {
         // Only the server processes the move for authority
         if (IsServer)
         {
-            // Directly set the position on the server (no RPC needed here)
             MovePieceServer(pieceNetObj, newPosition);
         }
         else
         {
-            // Clients request the server to move via ServerRpc
             RequestMovePieceServerRpc(pieceNetObj.NetworkObjectId, newPosition);
         }
     }
 
-    public void RequestCastle(NetworkObject kingPiece, NetworkObject rookPiece)
-    {
-        // Only the server processes the move for authority
-        if (IsServer)
-        {
-            // Directly set the position on the server (no RPC needed here)
-            CastleServer(kingPiece, rookPiece);
-        }
-        else
-        {
-            // Clients request the server to move via ServerRpc
-            RequestCastleServerRpc(kingPiece.NetworkObjectId, rookPiece.NetworkObjectId);
-        }
-    }
-
-    // ServerRpc: Called by clients to request a move
-    [ServerRpc(RequireOwnership = false)]  // Allow any client to request (you can add validation)
+    [ServerRpc(RequireOwnership = false)]  
     private void RequestMovePieceServerRpc(ulong pieceNetworkId, Vector3 newPosition)
     {
-        // Server validates and gets the NetworkObject
         if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(pieceNetworkId, out NetworkObject pieceNetObj))
         {
-            // Optional: Add game logic validation (e.g., is the move legal?)
             MovePieceServer(pieceNetObj, newPosition);
         }
     }
 
-    // Server-side method to apply the move
     private void MovePieceServer(NetworkObject pieceNetObj, Vector3 newPosition)
     {
         if (pieceNetObj != null)
@@ -481,14 +477,26 @@ public class GameManager : NetworkBehaviour
             Piece piece = pieceNetObj.GetComponent<Piece>();
             if (piece != null)
             {
-                //Debug.Log($"Server moving piece {pieceNetObj.NetworkObjectId} to {newPosition}");
                 // Set the position directly on the server
                 // NetworkTransform will sync this to clients with interpolation
-                pieceNetObj.transform.position = newPosition;  // Instant on server, interpolated on clients
+                // (future): replace with animation
+                pieceNetObj.transform.position = newPosition;  
                 
-                // Optional: If you want server-side animation, you could start a coroutine here,
-                // but NetworkTransform's interpolation usually makes it unnecessary.
             }
+        }
+    }
+
+    // Castling Logic
+    public void RequestCastle(NetworkObject kingPiece, NetworkObject rookPiece)
+    {
+        // Only the server processes the move for authority
+        if (IsServer)
+        {
+            CastleServer(kingPiece, rookPiece);
+        }
+        else
+        {
+            RequestCastleServerRpc(kingPiece.NetworkObjectId, rookPiece.NetworkObjectId);
         }
     }
     
@@ -505,36 +513,34 @@ public class GameManager : NetworkBehaviour
         }
     }
 
-    // ServerRpc: Called by clients to request a move
-    [ServerRpc(RequireOwnership = false)]  // Allow any client to request (you can add validation)
+    [ServerRpc(RequireOwnership = false)] 
     private void RequestCastleServerRpc(ulong kingPieceNetworkId, ulong rookPieceNetworkId)
     {
-        // Server validates and gets the NetworkObject
         if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(kingPieceNetworkId, out NetworkObject kPieceNetObj) && 
             NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(rookPieceNetworkId, out NetworkObject rPieceNetObj))
         {
-            // Optional: Add game logic validation (e.g., is the move legal?)
             CastleServer(kPieceNetObj, rPieceNetObj);
         }
     }
 
+    // Tile color change Logic
     private void HighlightTile(Vector3Int tilePos, char mode, ulong? clientId = null)
-{
-    if (clientId.HasValue)
     {
-        HighlightTileClientRpc(tilePos, mode, new ClientRpcParams
+        if (clientId.HasValue)
         {
-            Send = new ClientRpcSendParams
+            HighlightTileClientRpc(tilePos, mode, new ClientRpcParams
             {
-                TargetClientIds = new ulong[] { clientId.Value }
-            }
-        });
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { clientId.Value }
+                }
+            });
+        }
+        else
+        {
+            HighlightTileClientRpc(tilePos, mode); // broadcast to all
+        }
     }
-    else
-    {
-        HighlightTileClientRpc(tilePos, mode); // broadcast to all
-    }
-}
 
     [ClientRpc]
     private void HighlightTileClientRpc(Vector3Int tilePos, char mode, ClientRpcParams clientRpcParams = default)
@@ -571,7 +577,7 @@ public class GameManager : NetworkBehaviour
         tileRenderer.material = m;
     }
 
-    //highlights all valid moves of current piece
+    // Highlights all valid moves of current piece
     private void ShowValidMoves(Piece piece, ulong clientId)
     {
         IterateBoard((x, y, z) =>
@@ -585,6 +591,8 @@ public class GameManager : NetworkBehaviour
             }
         });
     }
+    
+    // Highlights the King Tile in red if it is in check
     private void LookForCheck(ulong clientId)
     {
         Tile k = null;
@@ -597,7 +605,7 @@ public class GameManager : NetworkBehaviour
                 k = board[x, y, z];
             }
         });
-        
+
 
         if (k != null)
         {
@@ -616,13 +624,13 @@ public class GameManager : NetworkBehaviour
                         HighlightTile(new Vector3Int((int)k.boardPos.x, (int)k.boardPos.y, (int)k.boardPos.z), 'r');
                         HighlightTile(new Vector3Int((int)k.boardPos.x, (int)k.boardPos.y, (int)k.boardPos.z), 'd', clientId);
                     }
-                    
+
                 }
             });
         }
     }
 
-    //reset all highlighted tiles
+    // Reset all highlighted tiles
     private void ResetValidMoveDisplay(int layer, ulong clientId)
     {
         IterateBoard((x, y, z) =>
@@ -650,7 +658,7 @@ public class GameManager : NetworkBehaviour
         }
     }
 
-    //iterates through the board in down -> up (y), left -> right (z), forward -> backward (x)
+    // Iterates through the board in down -> up (y), left -> right (z), forward -> backward (x)
     private void IterateBoard(System.Action<int, int, int> action)
     {
         for (int y = 0; y < BOARD_SIZE; y++)
